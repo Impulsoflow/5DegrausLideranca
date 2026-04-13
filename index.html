@@ -687,7 +687,6 @@ async function autoSendResults() {
   autoSendInProgress = true;
   setStatus("Gerando relatório e enviando...", "info");
   try {
-    // Esperar gráficos completarem a animação
     await wait(1500);
     const pb64 = await generatePdfBase64();
     const data = window._leaderData;
@@ -733,27 +732,7 @@ $("btn-download-pdf").addEventListener("click", async function () {
 });
 
 // ═══════════════════════════════════════════════════════════
-// CAPTURAR GRÁFICOS COM ESPERA
-// ═══════════════════════════════════════════════════════════
-async function captureChartImage(chartInstance, canvasId) {
-  // Forçar render completo
-  if (chartInstance && chartInstance.options) {
-    chartInstance.options.animation = { duration: 0 };
-    chartInstance.update("none");
-  }
-  await wait(500);
-  const canvas = $(canvasId);
-  if (!canvas) return null;
-  try {
-    return canvas.toDataURL("image/png", 1.0);
-  } catch (e) {
-    console.warn("Erro captura gráfico " + canvasId, e);
-    return null;
-  }
-}
-
-// ═══════════════════════════════════════════════════════════
-// BUILD PDF COMPLETO
+// BUILD PDF — VERSÃO FINAL
 // ═══════════════════════════════════════════════════════════
 async function buildPdfDoc() {
   const data = window._leaderData;
@@ -769,10 +748,7 @@ async function buildPdfDoc() {
   const pc = lcm[data.currentLevel] || [11, 99, 206];
   const FOOTER_TEXT = "Instituto Impulso Coaching de Liderança | Rogério Braga - Master Coach Executivo";
 
-  // Capturar gráficos ANTES de construir o PDF
-  const radarImg = await captureChartImage(charts.radar, "radarChart");
-  const barImg = await captureChartImage(charts.bar, "barChart");
-
+  // ═══ HELPERS ═══
   function drawPageHeader() {
     doc.setFillColor(34, 84, 138); doc.rect(0, 0, pageW, 12, "F");
     doc.setTextColor(255, 255, 255); doc.setFont("helvetica", "bold"); doc.setFontSize(10);
@@ -820,7 +796,7 @@ async function buildPdfDoc() {
   }
 
   // ════════════════════════════════════════════════════════
-  // CAPA
+  // CAPA (PÁG 1)
   // ════════════════════════════════════════════════════════
   doc.setFillColor(255, 255, 255); doc.rect(0, 0, pageW, pageH, "F");
   doc.setFillColor(225, 235, 248); doc.triangle(0, 0, pageW, 0, 0, 60, "F");
@@ -836,7 +812,7 @@ async function buildPdfDoc() {
   doc.setFont("helvetica", "bold"); doc.setFontSize(22); doc.setTextColor(11, 99, 206);
   doc.text("5 Degraus da Liderança", pageW / 2, 114, { align: "center" });
 
-  // Mini-escadaria na capa
+  // Mini-escadaria capa
   const sx = pageW / 2 - 40, sy = 145, sw = 16;
   const sc = [[96, 125, 139], [67, 160, 71], [251, 140, 0], [30, 136, 229], [171, 71, 188]];
   for (let i = 0; i < 5; i++) {
@@ -856,101 +832,47 @@ async function buildPdfDoc() {
   doc.text("A Mudança Pode Acontecer Em Um Instante", 18, 287);
 
   // ════════════════════════════════════════════════════════
-  // PÁG 2: PARTICIPANTE + MAPEAMENTO
+  // PÁG 2: PARTICIPANTE + MAPEAMENTO + DIAGNÓSTICO
   // ════════════════════════════════════════════════════════
   doc.addPage(); drawPageHeader();
+
   addSectionTitle("1. Participante");
   addDataRow("Nome", fn, "Idade", sanitize(data.prettyData.idade) + " anos");
   addDataRow("Cargo", fp, "Formação", sanitize(data.prettyData.escolaridade));
   addDataRow("E-mail", sanitize(data.prettyData.email).toLowerCase(), "WhatsApp", sanitize(data.prettyData.whatsapp));
-  y += 8;
+  y += 6;
 
+  // ── MAPEAMENTO ──
   addSectionTitle("2. Mapeamento dos 5 Degraus");
   const bl = ["Degrau 1 — Posição", "Degrau 2 — Permissão", "Degrau 3 — Produção", "Degrau 4 — Desenvolvimento", "Degrau 5 — Integridade"];
   const bc = [[96, 125, 139], [67, 160, 71], [251, 140, 0], [30, 136, 229], [171, 71, 188]];
   for (let d = 1; d <= 5; d++) addProgressBar(bl[d - 1], data.percents[d], bc[d - 1]);
-  y += 4;
+  y += 2;
   doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(11, 42, 82);
-  doc.text("Pontuação Geral: " + data.totalGeneral + "/125", margin, y); y += 7;
+  doc.text("Pontuação Geral: " + data.totalGeneral + "/125", margin, y); y += 6;
 
   doc.setFillColor(240, 245, 255); doc.setDrawColor(pc[0], pc[1], pc[2]); doc.setLineWidth(1);
-  doc.roundedRect(margin, y, contentW, 12, 3, 3, "FD");
-  doc.setFont("helvetica", "bold"); doc.setFontSize(12); doc.setTextColor(pc[0], pc[1], pc[2]);
-  const ln = { 1: "Posição", 2: "Permissão", 3: "Produção", 4: "Desenvolvimento", 5: "Integridade" };
-  doc.text("Degrau Predominante: " + data.currentLevel + " — " + ln[data.currentLevel], margin + 5, y + 8); y += 16;
-  doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(11, 42, 82);
-  doc.text("Combinação: " + DIM_NAMES[data.currentLevel] + " + " + DIM_NAMES[data.top2], margin, y); y += 10;
+  doc.roundedRect(margin, y, contentW, 10, 3, 3, "FD");
+  doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(pc[0], pc[1], pc[2]);
+  const lnm = { 1: "Posição", 2: "Permissão", 3: "Produção", 4: "Desenvolvimento", 5: "Integridade" };
+  doc.text("Degrau Predominante: " + data.currentLevel + " — " + lnm[data.currentLevel], margin + 4, y + 7); y += 14;
+  doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(11, 42, 82);
+  doc.text("Combinação Dominante: " + DIM_NAMES[data.currentLevel] + " + " + DIM_NAMES[data.top2], margin, y); y += 8;
 
-  // ════════════════════════════════════════════════════════
-  // PÁG 3: GRÁFICOS (PRIMEIRO!)
-  // ════════════════════════════════════════════════════════
-  forceNewPage();
-  addSectionTitle("3. Análise Gráfica dos 5 Degraus");
-
-  if (radarImg || barImg) {
-    const cs = 78, g = 8;
-    const stX = margin + (contentW - (cs * 2 + g)) / 2;
-
-    doc.setFont("helvetica", "bold"); doc.setFontSize(11); doc.setTextColor(11, 42, 82);
-    doc.text("Radar de Competências", stX + cs / 2, y, { align: "center" });
-    doc.text("Pontuação por Degrau", stX + cs + g + cs / 2, y, { align: "center" });
-    y += 4;
-
-    doc.setDrawColor(207, 230, 255); doc.setLineWidth(0.5);
-    doc.roundedRect(stX, y, cs, cs, 3, 3, "S");
-    doc.roundedRect(stX + cs + g, y, cs, cs, 3, 3, "S");
-
-    if (radarImg) {
-      try { doc.addImage(radarImg, "PNG", stX + 2, y + 2, cs - 4, cs - 4); } catch (e) { console.warn("Radar img error:", e); }
-    }
-    if (barImg) {
-      try { doc.addImage(barImg, "PNG", stX + cs + g + 2, y + 2, cs - 4, cs - 4); } catch (e) { console.warn("Bar img error:", e); }
-    }
-    y += cs + 10;
-  } else {
-    doc.setFont("helvetica", "normal"); doc.setFontSize(10); doc.setTextColor(150, 150, 150);
-    doc.text("Gráficos não disponíveis nesta visualização.", margin, y); y += 10;
-  }
-
-  // Legenda abaixo dos gráficos
-  y += 4;
-  const lgd = [
-    { label: "Posição", color: [96, 125, 139] },
-    { label: "Permissão", color: [67, 160, 71] },
-    { label: "Produção", color: [251, 140, 0] },
-    { label: "Desenvolvimento", color: [30, 136, 229] },
-    { label: "Integridade", color: [171, 71, 188] }
-  ];
-  let lx = margin;
-  lgd.forEach(l => {
-    doc.setFillColor(l.color[0], l.color[1], l.color[2]);
-    doc.circle(lx + 3, y, 2.5, "F");
-    doc.setFont("helvetica", "normal"); doc.setFontSize(8); doc.setTextColor(51, 51, 51);
-    doc.text(l.label, lx + 7, y + 1);
-    lx += 34;
-  });
-  y += 10;
-
-  // Tabela resumo
-  addParagraph("Resumo: D1=" + data.rawScores[1] + "/25 | D2=" + data.rawScores[2] + "/25 | D3=" + data.rawScores[3] + "/25 | D4=" + data.rawScores[4] + "/25 | D5=" + data.rawScores[5] + "/25 | Total=" + data.totalGeneral + "/125", 9, 5);
-
-  // ════════════════════════════════════════════════════════
-  // PÁG 4: DIAGNÓSTICO DO PERFIL
-  // ════════════════════════════════════════════════════════
-  forceNewPage();
-  addSectionTitle("4. Diagnóstico do Perfil Combinado");
+  // ── DIAGNÓSTICO (logo abaixo, mesma página se couber) ──
+  addSectionTitle("3. Diagnóstico do Perfil Combinado");
   doc.setFont("helvetica", "bold"); doc.setFontSize(13); doc.setTextColor(pc[0], pc[1], pc[2]);
-  doc.text(prof.nome, margin, y); y += 6;
+  newPageIfNeeded(8); doc.text(prof.nome, margin, y); y += 6;
   doc.setFont("helvetica", "bold"); doc.setFontSize(10); doc.setTextColor(11, 42, 82);
-  doc.text(prof.subtitle, margin, y); y += 6;
-  addParagraph(prof.desc, 10, 5); y += 2;
+  newPageIfNeeded(6); doc.text(prof.subtitle, margin, y); y += 6;
+  addParagraph(prof.desc, 10, 5); y += 1;
   addParagraph(prof.texto, 9.5, 5);
 
   // ════════════════════════════════════════════════════════
-  // PÁG 5: ESCADARIA VISUAL (IGUAL À IMAGEM — DE BAIXO PRA CIMA)
+  // PÁG SEGUINTE: ESCADARIA VISUAL DOS 5 DEGRAUS
   // ════════════════════════════════════════════════════════
   forceNewPage();
-  addSectionTitle("5. Os 5 Degraus da Liderança");
+  addSectionTitle("4. Os 5 Degraus da Liderança");
 
   const stairData = [
     {
@@ -1005,12 +927,11 @@ async function buildPdfDoc() {
     }
   ];
 
-  const bw = 130; // largura da caixa de texto
   const circR = 8;
 
   stairData.forEach((st, idx) => {
-    const bh = 32; // altura fixa de cada bloco
-    const indent = (4 - idx) * 8; // mais à esquerda = mais baixo (escada)
+    const bh = 32;
+    const indent = (4 - idx) * 8;
     newPageIfNeeded(bh + 8);
 
     const cx = margin + indent + circR + 2;
@@ -1018,31 +939,25 @@ async function buildPdfDoc() {
     const boxX = cx + circR + 6;
     const boxW = pageW - margin - boxX;
 
-    // Círculo com número
     doc.setFillColor(st.color[0], st.color[1], st.color[2]);
     doc.circle(cx, cy, circR, "F");
     doc.setFont("helvetica", "bold"); doc.setFontSize(16); doc.setTextColor(255, 255, 255);
     doc.text(st.num, cx, cy + 2, { align: "center" });
 
-    // Título
     doc.setFont("helvetica", "bold"); doc.setFontSize(11);
     doc.setTextColor(st.color[0], st.color[1], st.color[2]);
     doc.text(st.title, boxX, y + 4);
 
-    // Caixa de texto
     doc.setDrawColor(st.color[0], st.color[1], st.color[2]); doc.setLineWidth(0.6);
     doc.roundedRect(boxX, y + 7, boxW, bh - 10, 2, 2, "S");
 
-    // Subtítulo
     doc.setFont("helvetica", "bold"); doc.setFontSize(9); doc.setTextColor(11, 42, 82);
     doc.text(st.sub, boxX + 3, y + 13);
 
-    // Texto descritivo
     doc.setFont("helvetica", "normal"); doc.setFontSize(7); doc.setTextColor(51, 51, 51);
     let ty = y + 17;
     st.lines.forEach(l => { doc.text(l, boxX + 3, ty); ty += 3.5; });
 
-    // Linha conectora
     if (idx < stairData.length - 1) {
       doc.setDrawColor(200, 210, 225); doc.setLineWidth(0.4);
       doc.line(cx, cy + circR, cx, y + bh + 4);
@@ -1052,10 +967,10 @@ async function buildPdfDoc() {
   });
 
   // ════════════════════════════════════════════════════════
-  // PÁG 6: GUIA EXPLICATIVO
+  // GUIA COMPLETO
   // ════════════════════════════════════════════════════════
   forceNewPage();
-  addSectionTitle("6. Guia Completo dos 5 Degraus");
+  addSectionTitle("5. Guia Completo dos 5 Degraus");
 
   const guia = [
     { title: "DEGRAU 1 — POSIÇÃO / DIREITOS", color: [96, 125, 139], text: "As pessoas o seguem porque têm de fazê-lo. Sua influência não se estende além das linhas da descrição de seu trabalho. Quanto mais você fica neste nível, maior a rotação de pessoas e menor o ânimo da equipe. Este é o ponto de partida de todo líder — o desafio é não permanecer. Para subir: conheça profundamente sua organização, entregue além do esperado, demonstre iniciativa e desenvolva ideias criativas." },
@@ -1085,7 +1000,7 @@ async function buildPdfDoc() {
   doc.text("Rogério Braga — Master Coach Executivo | A Mudança Pode Acontecer Em Um Instante", pageW / 2, y, { align: "center" });
 
   // ════════════════════════════════════════════════════════
-  // RODAPÉ EM TODAS AS PÁGINAS (loop final)
+  // RODAPÉ EM TODAS AS PÁGINAS (loop final único)
   // ════════════════════════════════════════════════════════
   const totalPages = doc.internal.getNumberOfPages();
   for (let p = 2; p <= totalPages; p++) {
@@ -1102,3 +1017,5 @@ async function buildPdfDoc() {
 </script>
 </body>
 </html>
+   
+  
