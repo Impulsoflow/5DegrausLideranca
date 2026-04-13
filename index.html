@@ -1,3 +1,266 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mapeamento de Liderança - Instituto Impulso Coaching de Liderança</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.4.0/purify.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg1: #0b4aa2; --bg2: #062b62; --surface: #f4f9ff; --card: #ffffff;
+      --text: #0f172a; --muted: #475569; --primary: #0b63ce; --primary2: #084aa0;
+      --accent: #38bdf8; --border: #cfe6ff;
+      --shadow: 0 14px 34px rgba(2,32,71,.18); --shadow2: 0 8px 20px rgba(2,32,71,.12);
+      --radius: 18px; --radius2: 14px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; font-family: 'Poppins', system-ui, -apple-system, sans-serif;
+      background: radial-gradient(1200px 700px at 20% 10%, rgba(56,189,248,.35), transparent 55%),
+        radial-gradient(900px 600px at 85% 15%, rgba(255,215,0,.18), transparent 60%),
+        linear-gradient(135deg, var(--bg1), var(--bg2));
+      color: var(--text); line-height: 1.6; padding: 18px;
+    }
+    .header { text-align: center; padding: 10px 0 20px; margin-bottom: 14px; border-bottom: 1px solid rgba(11,99,206,.08); }
+    .main-title { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 18px; font-weight: normal; color: #64748b; letter-spacing: 0.12em; text-transform: uppercase; line-height: 1.2; }
+    .tagline { margin: 6px 0 18px; font-weight: 700; color: #0b2a52; font-size: 13px; letter-spacing: .02em; font-family: Arial, sans-serif; }
+    .sub-title { margin: 0; font-family: Arial, Helvetica, sans-serif; font-size: 34px; line-height: 1.15; color: #063b7a; font-weight: normal; letter-spacing: -0.01em; }
+    .header-desc { margin: 12px auto 0; max-width: 78ch; color: var(--muted); font-size: 14px; font-weight: normal; }
+    .container { max-width: 980px; margin: 0 auto; background: linear-gradient(180deg, rgba(244,249,255,.95), rgba(244,249,255,.92)); border: 1px solid rgba(56,189,248,.35); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; position: relative; }
+    .container::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, var(--accent), var(--primary)); }
+    .wrap { padding: 26px; }
+    .card { background: var(--card); border: 1px solid rgba(207,230,255,.95); border-radius: var(--radius2); box-shadow: var(--shadow2); padding: 18px; }
+    .instructions { background: linear-gradient(180deg, rgba(56,189,248,.14), rgba(56,189,248,.08)); border: 1px solid rgba(56,189,248,.25); border-left: 6px solid var(--accent); border-radius: var(--radius2); padding: 16px; margin: 14px 0 18px; color: var(--text); }
+    .instructions p { margin: 0 0 10px; font-size: 14px; color: var(--text); text-align: justify; }
+    .instructions p:last-child { margin-bottom: 0; }
+    .grid-form { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 24px; }
+    @media (max-width: 650px) { .grid-form { grid-template-columns: 1fr; } }
+    .form-group label { display: block; font-weight: 800; color: #063b7a; margin-bottom: 8px; font-size: 14px; font-family: Arial, sans-serif; }
+    .form-group input, .form-group select { width: 100%; padding: 14px; border: 1.5px solid rgba(11,99,206,.28); border-radius: 12px; font-size: 15px; background: #fff; outline: none; transition: box-shadow .2s ease, border-color .2s ease; font-family: 'Poppins', sans-serif; }
+    .form-group input:focus, .form-group select:focus { border-color: rgba(11,99,206,.55); box-shadow: 0 0 0 4px rgba(56,189,248,.22); }
+    .form-group input.input-error, .form-group select.input-error { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,.15); animation: shake .4s ease; }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-4px); } 40%, 80% { transform: translateX(4px); } }
+    .error { display: none; margin-top: 6px; color: #b91c1c; font-size: 13px; font-weight: 600; font-family: Arial, sans-serif; }
+    .alert-toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: linear-gradient(135deg, #dc2626, #b91c1c); color: #fff; padding: 14px 28px; border-radius: 14px; font-family: Arial, sans-serif; font-weight: 800; font-size: 14px; z-index: 9999; box-shadow: 0 8px 30px rgba(220,38,38,.4); animation: slideDown .4s ease; display: none; text-align: center; max-width: 90vw; }
+    .alert-toast.show { display: block; }
+    @keyframes slideDown { from { opacity: 0; transform: translateX(-50%) translateY(-20px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+    .step { display: none; } .step.active { display: block; }
+    .topbar { display: flex; flex-wrap: wrap; gap: 10px 12px; align-items: center; justify-content: space-between; margin: 10px 0 12px; }
+    .counter { font-weight: 800; color: #0b2a52; font-size: 14px; font-family: Arial, sans-serif; }
+    .progress-meta { font-weight: 700; color: var(--muted); font-size: 13px; font-family: Arial, sans-serif; }
+    .progress-bar { width: 100%; background: #e6eefc; border-radius: 999px; overflow: hidden; height: 12px; border: 1px solid rgba(11,99,206,.12); }
+    .progress-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, var(--accent), var(--primary)); transition: width .35s ease-in-out; }
+    .question-title { margin: 0 0 10px; font-size: 16px; font-weight: 600; color: #0f172a; }
+    .options { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; gap: 10px; margin-top: 12px; }
+    .opt { border: 1.5px solid rgba(11,99,206,.22); background: rgba(11,99,206,.06); border-radius: 12px; padding: 10px; cursor: pointer; user-select: none; transition: transform .12s ease, box-shadow .2s ease, border-color .2s ease, background .2s ease; min-height: 48px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 500; color: #0b2a52; font-size: 13px; flex: 0 1 calc(20% - 10px); max-width: 180px; min-width: 120px; }
+    @media (max-width: 820px) { .opt { flex: 0 1 calc(50% - 10px); min-width: 140px; } }
+    @media (max-width: 380px) { .opt { flex: 0 1 100%; max-width: 340px; min-width: 0; } }
+    .opt:hover { transform: translateY(-1px); box-shadow: 0 12px 18px rgba(2,32,71,.10); border-color: rgba(56,189,248,.55); }
+    .opt[aria-checked="true"] { background: linear-gradient(45deg, var(--primary), var(--primary2)); border-color: rgba(11,99,206,.55); color: #fff; box-shadow: 0 14px 22px rgba(11,99,206,.22); font-weight: 600; font-family: Arial, sans-serif; }
+    .nav { display: flex; gap: 10px; justify-content: space-between; margin-top: 14px; flex-wrap: wrap; }
+    .btn { appearance: none; border: none; cursor: pointer; border-radius: 14px; padding: 12px 16px; font-size: 14px; font-weight: 800; transition: transform .12s ease, box-shadow .2s ease, filter .2s ease; display: inline-flex; align-items: center; gap: 10px; font-family: Arial, sans-serif; }
+    .btn-primary { background: linear-gradient(45deg, var(--primary), var(--primary2)); color: #fff; box-shadow: 0 10px 18px rgba(11,99,206,.22); }
+    .btn-primary:hover { transform: translateY(-1px); filter: saturate(1.05); box-shadow: 0 14px 26px rgba(11,99,206,.30); }
+    .btn-ghost { background: #fff; color: #0b2a52; border: 1.5px solid rgba(11,99,206,.22); box-shadow: 0 8px 16px rgba(2,32,71,.08); text-decoration: none; }
+    .btn-ghost:hover { transform: translateY(-1px); border-color: rgba(56,189,248,.55); }
+    .btn:disabled { opacity: .55; cursor: not-allowed; transform: none !important; box-shadow: none !important; }
+    .result-hero { text-align: center; margin-top: 10px; }
+    .result-hero h2 { margin: 0; font-size: 24px; font-weight: 900; color: #063b7a; font-family: Arial, sans-serif; }
+    .result-grid { display: grid; grid-template-columns: 1.1fr .9fr; gap: 14px; margin-top: 14px; }
+    @media (max-width: 820px) { .result-grid { grid-template-columns: 1fr; } }
+    .result-box { background: #fff; border: 1px solid rgba(207,230,255,.95); border-left: 6px solid var(--accent); padding: 16px; border-radius: var(--radius2); box-shadow: var(--shadow2); }
+    .result-box h3 { margin: 0 0 6px; font-size: 15px; font-weight: 900; color: #063b7a; font-family: Arial, sans-serif; }
+    .result-box p { margin: 0; color: var(--muted); font-size: 13px; }
+    .progress-container { margin: 12px 0; }
+    .progress-label { font-weight: 800; color: #0b2a52; margin-bottom: 6px; font-size: 13px; display: flex; justify-content: space-between; gap: 10px; font-family: Arial, sans-serif; }
+    .level-bar { width: 100%; background: #e6eefc; border-radius: 999px; overflow: hidden; height: 14px; border: 1px solid rgba(11,99,206,.12); }
+    .level-fill { height: 100%; width: 0%; border-radius: 999px; transition: width .5s ease-in-out; }
+    .fill-d1 { background: linear-gradient(90deg, #90A4AE, #607D8B); }
+    .fill-d2 { background: linear-gradient(90deg, #66BB6A, #2E7D32); }
+    .fill-d3 { background: linear-gradient(90deg, #FFA726, #E65100); }
+    .fill-d4 { background: linear-gradient(90deg, #42A5F5, #1565C0); }
+    .fill-d5 { background: linear-gradient(90deg, #AB47BC, #6A1B9A); }
+    .totals { margin-top: 10px; font-size: 13px; color: #0b2a52; font-weight: 800; line-height: 1.55; font-family: Arial, sans-serif; }
+    #currentLevel { font-weight: 1000; color: #063b7a; background: rgba(11,99,206,.08); padding: 6px 14px; border-radius: 12px; border: 1px solid rgba(11,99,206,.35); display: inline-block; font-family: Arial, sans-serif; font-size: 16px; }
+    .combo-tag { display: inline-block; padding: 5px 16px; border-radius: 20px; font-size: 13px; font-weight: 800; color: #fff; font-family: Arial, sans-serif; letter-spacing: .03em; margin-top: 8px; }
+    .profile { margin-top: 12px; padding: 16px; border-radius: 14px; border: 1px solid rgba(11,99,206,.18); background: linear-gradient(180deg, rgba(244,249,255,1), rgba(230,240,255,1)); box-shadow: 0 4px 12px rgba(2,32,71,.05); }
+    .profile .name { font-weight: 900; color: #063b7a; margin: 0 0 4px; font-size: 18px; font-family: Arial, sans-serif; }
+    .profile .subtitle { font-weight: 800; color: var(--primary); margin: 0 0 12px; font-size: 13px; font-family: Arial, sans-serif; }
+    .profile .desc { margin: 0; color: #0f172a; font-weight: 500; font-size: 13.5px; white-space: pre-line; text-align: justify; }
+    .charts { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; align-items: stretch; }
+    @media (max-width: 820px) { .charts { grid-template-columns: 1fr; } }
+    .chart-card { background: #fff; border: 1px solid rgba(207,230,255,.95); border-radius: var(--radius2); padding: 16px; box-shadow: var(--shadow2); display: flex; flex-direction: column; align-items: center; justify-content: center; }
+    .chart-card h4 { margin: 0 0 8px; font-size: 14px; font-weight: 900; color: #063b7a; font-family: Arial, sans-serif; text-align: center; }
+    .chart-wrap { position: relative; width: 100%; max-width: 300px; aspect-ratio: 1 / 1; }
+    .chart-wrap canvas { width: 100% !important; height: 100% !important; }
+    .bar-chart-wrap { position: relative; width: 100%; max-width: 340px; height: 280px; }
+    .bar-chart-wrap canvas { width: 100% !important; height: 100% !important; }
+    .staircase { display: flex; align-items: flex-end; justify-content: center; gap: 6px; margin: 16px 0; }
+    .stair-step { display: flex; flex-direction: column; align-items: center; border-radius: 8px 8px 0 0; transition: all .4s ease; color: #fff; font-weight: 800; font-family: Arial, sans-serif; font-size: 11px; padding: 6px 10px 4px; min-width: 80px; opacity: 0.35; }
+    .stair-step.active { opacity: 1; box-shadow: 0 -4px 18px rgba(0,0,0,.18); }
+    .stair-step .stair-num { font-size: 22px; font-weight: 900; }
+    .stair-step .stair-label { font-size: 9px; text-align: center; margin-top: 2px; }
+    .footer { margin-top: 20px; text-align: center; color: var(--muted); font-size: 12px; font-weight: 700; font-family: Arial, sans-serif; }
+  </style>
+</head>
+<body>
+
+<div id="alert-toast" class="alert-toast"></div>
+
+<div class="container">
+  <div class="wrap">
+
+    <div class="header">
+      <p class="main-title">Instituto Impulso Coaching de Liderança</p>
+      <p class="tagline">A mudança pode acontecer em um instante</p>
+      <h1 class="sub-title">Mapeamento de Perfil de Liderança</h1>
+      <p class="header-desc">Descubra o que sua forma de liderar revela sobre você — e o que ainda está por ser desbloqueado.</p>
+    </div>
+
+    <!-- STEP 1: INTRO -->
+    <section id="step-intro" class="step active">
+      <div class="instructions">
+        <p>Existe um padrão invisível por trás de toda liderança. Ele define como as pessoas reagem a você, o quanto confiam nas suas decisões e até onde estão dispostas a ir ao seu lado. A maioria dos líderes não conhece esse padrão — e, por isso, fica presa em um nível de influência muito abaixo do seu real potencial.</p>
+        <p>Esta avaliação foi desenvolvida pelo <strong>Instituto Impulso Coaching</strong> para mapear com precisão esse padrão oculto. São 25 afirmações sobre situações reais do seu dia a dia profissional. Não existe resposta certa ou errada — apenas a sua verdade. Ao final, você receberá um diagnóstico completo que pode mudar a forma como você enxerga sua própria liderança.</p>
+        <p style="margin-top:10px; color:#0b63ce;">
+          <strong style="font-family:Arial,sans-serif;">Instruções:</strong> Leia cada afirmação com calma e selecione a opção que reflete fielmente a sua realidade atual: 1 (Nunca) a 5 (Sempre). Seja brutalmente honesto consigo mesmo — responda como você realmente é hoje, não como gostaria de ser. A precisão do seu resultado depende disso.
+        </p>
+      </div>
+
+      <div class="card" style="width:100%; max-width:720px; margin:0 auto; padding:32px 24px;">
+        <div class="grid-form">
+          <div class="form-group">
+            <label for="name">Nome Completo *</label>
+            <input type="text" id="name" autocomplete="name" placeholder="Ex: João Silva" />
+            <p id="name-error" class="error">Por favor, preencha o nome.</p>
+          </div>
+          <div class="form-group">
+            <label for="whatsapp">WhatsApp *</label>
+            <input type="tel" id="whatsapp" placeholder="(00) 90000-0000" maxlength="15" />
+            <p id="whatsapp-error" class="error">Por favor, preencha um WhatsApp válido.</p>
+          </div>
+          <div class="form-group">
+            <label for="email">E-mail Corporativo/Pessoal *</label>
+            <input type="email" id="email" autocomplete="email" placeholder="email@exemplo.com" />
+            <p id="email-error" class="error">Por favor, preencha um e-mail válido.</p>
+          </div>
+          <div class="form-group">
+            <label for="profession">Cargo / Profissão *</label>
+            <input type="text" id="profession" autocomplete="organization-title" placeholder="Ex: Diretor, Gerente" />
+            <p id="profession-error" class="error">Por favor, preencha a profissão.</p>
+          </div>
+          <div class="form-group">
+            <label for="age">Idade *</label>
+            <input type="text" id="age" maxlength="2" inputmode="numeric" placeholder="Ex: 35" />
+            <p id="age-error" class="error">Idade inválida.</p>
+          </div>
+          <div class="form-group">
+            <label for="escolaridade">Escolaridade *</label>
+            <select id="escolaridade">
+              <option value="">Selecione...</option>
+              <option value="Ensino Médio Incompleto">Ensino Médio Incompleto</option>
+              <option value="Ensino Médio Completo">Ensino Médio Completo</option>
+              <option value="Ensino Superior Incompleto">Ensino Superior Incompleto</option>
+              <option value="Ensino Superior Completo">Ensino Superior Completo</option>
+              <option value="Pós-Graduação / MBA">Pós-Graduação / MBA</option>
+              <option value="Mestrado / Doutorado">Mestrado / Doutorado</option>
+            </select>
+            <p id="escolaridade-error" class="error">Por favor, selecione a escolaridade.</p>
+          </div>
+        </div>
+        <div class="nav" style="justify-content:center; margin-top:32px;">
+          <button id="btn-start" class="btn btn-primary" type="button"
+            style="width:100%; max-width:320px; justify-content:center; padding:14px; font-size:16px;">
+            Iniciar Avaliação
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 2: QUIZ -->
+    <section id="step-quiz" class="step">
+      <div class="topbar">
+        <div class="counter">Pergunta <span id="q-current">1</span> de 25</div>
+        <div class="progress-meta"><span id="answered-count">0</span>/25 respondidas</div>
+      </div>
+      <div class="progress-bar"><div id="progress-fill" class="progress-fill"></div></div>
+      <div class="card" style="margin-top:12px; padding:30px;">
+        <p id="question-text" class="question-title" style="text-align:center; font-size:18px; min-height:50px; font-family:Arial,sans-serif;"></p>
+        <div id="options" class="options" role="radiogroup"></div>
+        <div class="nav" style="margin-top:30px;">
+          <button id="btn-prev" class="btn btn-ghost" type="button">Anterior</button>
+          <button id="btn-next" class="btn btn-primary" type="button" style="display:none;">Gerar Relatório</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- STEP 3: RESULTADOS -->
+    <section id="step-results" class="step">
+      <div class="result-hero">
+        <h2>Seu Mapa de Liderança — 5 Degraus</h2>
+        <p id="auto-send-status" style="font-family:Arial,sans-serif; font-weight:bold; color:#0b63ce; min-height:22px;"></p>
+        <div id="final-success-message" style="margin-top:14px; background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.4); padding:16px; border-radius:12px; text-align:center; display:none;">
+          <p style="margin:0; font-size:18px; font-family:Arial,sans-serif; font-weight:bold; color:#065f46;">✅ Relatório Gerado!</p>
+          <p style="margin:6px 0 0; font-size:14px; color:#047857;">Resultado completo em PDF enviado para seu e-mail.<br>Equipe Instituto Impulso notificada.</p>
+        </div>
+      </div>
+
+      <div class="result-grid">
+        <div class="card">
+          <div class="staircase" id="staircase"></div>
+          <div class="progress-container"><div class="progress-label"><span>Degrau 1 — Posição / Direitos</span><span id="percentD1">0%</span></div><div class="level-bar"><div id="barD1" class="level-fill fill-d1"></div></div></div>
+          <div class="progress-container"><div class="progress-label"><span>Degrau 2 — Permissão / Relacionamentos</span><span id="percentD2">0%</span></div><div class="level-bar"><div id="barD2" class="level-fill fill-d2"></div></div></div>
+          <div class="progress-container"><div class="progress-label"><span>Degrau 3 — Produção / Resultados</span><span id="percentD3">0%</span></div><div class="level-bar"><div id="barD3" class="level-fill fill-d3"></div></div></div>
+          <div class="progress-container"><div class="progress-label"><span>Degrau 4 — Desenvolvimento / Reprodução</span><span id="percentD4">0%</span></div><div class="level-bar"><div id="barD4" class="level-fill fill-d4"></div></div></div>
+          <div class="progress-container"><div class="progress-label"><span>Degrau 5 — Integridade / Respeito</span><span id="percentD5">0%</span></div><div class="level-bar"><div id="barD5" class="level-fill fill-d5"></div></div></div>
+
+          <div class="totals">
+            <div><strong>Pontuação por Degrau:</strong><br>D1: <span id="totalD1">0</span>/25 | D2: <span id="totalD2">0</span>/25 | D3: <span id="totalD3">0</span>/25 | D4: <span id="totalD4">0</span>/25 | D5: <span id="totalD5">0</span>/25</div>
+            <div style="margin-top:10px; padding-top:10px; border-top:1px solid #e2e8f0;"><strong>Pontuação Geral:</strong> <span id="totalGeneral">0</span>/125</div>
+            <div style="margin-top:10px;"><span style="font-size:14px;"><strong>Degrau Predominante:</strong></span> <span id="currentLevel">—</span></div>
+            <div style="margin-top:8px;"><span style="font-size:14px;"><strong>Combinação Dominante:</strong></span><br><span id="comboTag" class="combo-tag" style="background:#0b63ce;">—</span></div>
+          </div>
+
+          <div class="profile">
+            <p class="name" id="profile-name">—</p>
+            <p class="subtitle" id="profile-subtitle"></p>
+            <p class="desc" id="profile-desc"></p>
+          </div>
+
+          <div class="nav" style="margin-top:14px; justify-content:space-between;">
+            <button id="btn-back-quiz" class="btn btn-ghost" type="button">Nova Análise</button>
+            <button id="btn-download-pdf" class="btn btn-primary" type="button">⬇ Baixar PDF</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="result-box" style="border-left-color:#607D8B;"><h3>Degrau 1 — Posição / Direitos</h3><p>As pessoas o seguem porque têm de fazê-lo. Sua influência não se estende além da descrição de seu trabalho.</p></div>
+          <div class="result-box" style="margin-top:10px; border-left-color:#43A047;"><h3>Degrau 2 — Permissão / Relacionamentos</h3><p>As pessoas o seguem porque querem. O trabalho se torna divertido e colaborativo.</p></div>
+          <div class="result-box" style="margin-top:10px; border-left-color:#FB8C00;"><h3>Degrau 3 — Produção / Resultados</h3><p>As pessoas o seguem pelo que você fez para a organização. O sucesso é visível.</p></div>
+          <div class="result-box" style="margin-top:10px; border-left-color:#1E88E5;"><h3>Degrau 4 — Desenvolvimento / Reprodução</h3><p>As pessoas o seguem pelo que você faz por elas. Desenvolver líderes garante crescimento.</p></div>
+          <div class="result-box" style="margin-top:10px; border-left-color:#AB47BC;"><h3>Degrau 5 — Integridade / Respeito</h3><p>As pessoas o seguem por quem você é e o que representa. Poucos chegam aqui.</p></div>
+
+          <div class="charts">
+            <div class="chart-card"><h4>Radar dos 5 Degraus</h4><div class="chart-wrap"><canvas id="radarChart"></canvas></div></div>
+            <div class="chart-card"><h4>Pontuação por Degrau (%)</h4><div class="bar-chart-wrap"><canvas id="barChart"></canvas></div></div>
+          </div>
+        </div>
+      </div>
+      <p class="footer">Instituto Impulso Coaching | Rogério Braga - Master Coach Executivo</p>
+    </section>
+
+  </div>
+</div>
+
+<!-- PARTE 2 DO JAVASCRIPT SEGUE NO PRÓXIMO BLOCO -->
+
 <script>
 // ═══════════════════════════════════════════════════════════
 // GUARDS
